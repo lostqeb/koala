@@ -1,29 +1,25 @@
 #!/bin/bash
 
-# Paths
+set -e
+
 SOURCE_DIR="$HOME/Projects/koala/"
 TARGET_DIR="$HOME/builds/aur/koala/"
+MAX_SIZE=480
 
-# Preview with dry-run
-echo "🔍 Preview of changes (dry run):"
-rsync -av --delete --dry-run \
+echo "🔍 Previewing changes from $SOURCE_DIR to $TARGET_DIR..."
+rsync -av --delete \
   --exclude '*.log' \
   --exclude '*.zst' \
   --exclude '*.tar.*' \
   --exclude 'pkg/' \
   --exclude 'src/' \
   --exclude '.git/' \
-  "$SOURCE_DIR" "$TARGET_DIR"
+  "$SOURCE_DIR" "$TARGET_DIR" --dry-run
 
-# Confirm before syncing
 read -p "⚠️ Proceed with real sync and publish? (y/N): " confirm
-if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-  echo "❌ Sync canceled."
-  exit 1
-fi
+[[ "$confirm" != "y" && "$confirm" != "Y" ]] && echo "❌ Aborted." && exit 1
 
-# Sync files for real
-echo "🔄 Syncing source to AUR package directory..."
+echo "🔄 Syncing source..."
 rsync -av --delete \
   --exclude '*.log' \
   --exclude '*.zst' \
@@ -33,48 +29,58 @@ rsync -av --delete \
   --exclude '.git/' \
   "$SOURCE_DIR" "$TARGET_DIR"
 
-# Change into AUR build directory
-cd "$TARGET_DIR" || exit 1
+cd "$TARGET_DIR" || { echo "❌ Target directory not found"; exit 1; }
 
-# Auto-bump pkgrel
-echo "🔢 Bumping pkgrel..."
-sed -i -E 's/^pkgrel=([0-9]+)/pkgrel=$((\1+1))/' PKGBUILD
+# Ensure on 'master' branch
+branch=$(git rev-parse --abbrev-ref HEAD)
+[[ "$branch" != "master" ]] && git branch -m "$branch" master
 
-# Optionally bump pkgver using current date (uncomment to use date versioning)
-# NEW_VER=$(date +'%Y.%m.%d')
-# sed -i "s/^pkgver=.*/pkgver=$NEW_VER/" PKGBUILD
+# Compress .ogg files if oversized
+echo "🗜 Checking .ogg file sizes..."
+for file in *.ogg; do
+  [[ -f "$file" ]] || continue
+  size_kb=$(du -k "$file" | cut -f1)
+  if (( size_kb > MAX_SIZE )); then
+    echo "Compressing $file..."
+    ffmpeg -y -i "$file" -c:a libvorbis -b:a 64k "$file"
+  fi
+done
+
+# Compress koala_icon.png if too big
+if [[ -f koala_icon.png ]]; then
+  png_kb=$(du -k koala_icon.png | cut -f1)
+  if (( png_kb > MAX_SIZE )); then
+    echo "🖼 Compressing koala_icon.png..."
+    magick convert koala_icon.png -resize 128x128 -strip -quality 85 koala_icon.png
+  fi
+fi
+
+# Clean up build artifacts from Git
+git rm -rf --cached pkg/ src/ *.pkg.tar.* 2>/dev/null || true
+
+# Ensure .gitignore
+cat > .gitignore <<EOF
+pkg/
+src/
+*.log
+*.pkg.tar.*
+sync-and-publish.sh
+generate-changelog.sh
+CHANGELOG.md
+EOF
+git add .gitignore
 
 # Regenerate .SRCINFO
 echo "📄 Regenerating .SRCINFO..."
 makepkg --printsrcinfo > .SRCINFO
+git add .SRCINFO
 
+# Generate changelog if available
+[[ -x ./generate-changelog.sh ]] && ./generate-changelog.sh && git add CHANGELOG.md
 
-# Generate or update changelog
-if [[ -f generate-changelog.sh ]]; then
-  echo "📝 Generating changelog..."
-  ./generate-changelog.sh
-else
-  echo "⚠️ No changelog script found, skipping."
-fi
-
-
-# Optimize assets before commit
-echo "🗜 Compressing .ogg files..."
-find . -name '*.ogg' -exec ffmpeg -y -i {} -c:a libvorbis -b:a 64k {} \;
-
-echo "🖼 Compressing koala_icon.png if present..."
-if [[ -f koala_icon.png ]]; then
-  convert koala_icon.png -resize 128x128 -strip -quality 85 koala_icon.png
-fi
-
-echo "🧹 Removing build artifacts (pkg/, src/, *.pkg.tar.*)..."
-rm -rf pkg/ src/
-rm -f *.pkg.tar.*
-
-# Git add, commit, and push
-echo "📤 Committing and pushing to AUR..."
+# Commit and push
 git add .
-git commit -m "Automated update on $(date +'%Y-%m-%d %H:%M')"
-git push origin master
+git commit -m "Automated AUR sync on $(date +'%Y-%m-%d %H:%M')"
+git push --force origin master
 
-echo "✅ Koala successfully synced and pushed to AUR."
+echo "✅ Koala synced and pushed to AUR successfully."
