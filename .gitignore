@@ -1,19 +1,23 @@
-# Build artifacts
-*.log
-*.tar.*
-*.pkg.tar.*
-*.zst
-
-# Build directories
-build/
+# Build and package artifacts
 pkg/
 src/
+*.log
+*.tar.*
+*.zst
 
-# Editor/project files
+# Git AUR/AUR-only files
+.SRCINFO
+*.pkg.tar.*
+
+# Dev scripts you don’t want on GitHub
+sync-and-publish.sh
+generate-changelog.sh
+fix-aur-repo.sh
+release-on-github.sh
+
+# Editor/IDE clutter
 *.swp
+*.bak
 .vscode/
 .idea/
 
-# Optional local-only scripts (if not tracked in GitHub)
- sync-and-publish.sh
- generate-changelog.sh
