@@ -1,17 +1,19 @@
-# Backup and build artifacts
+# Build artifacts
+*.log
 *.tar.*
 *.pkg.tar.*
 *.zst
-*.log
 
-# Build output directories
+# Build directories
+build/
 pkg/
 src/
-build/
-*.o
-*.swp
 
-# Editor/IDE metadata
-*.kate-swp
-.idea/
+# Editor/project files
+*.swp
 .vscode/
+.idea/
+
+# Optional local-only scripts (if not tracked in GitHub)
+ sync-and-publish.sh
+ generate-changelog.sh
