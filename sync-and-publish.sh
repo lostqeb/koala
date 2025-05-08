@@ -57,6 +57,20 @@ else
   echo "⚠️ No changelog script found, skipping."
 fi
 
+
+# Optimize assets before commit
+echo "🗜 Compressing .ogg files..."
+find . -name '*.ogg' -exec ffmpeg -y -i {} -c:a libvorbis -b:a 64k {} \;
+
+echo "🖼 Compressing koala_icon.png if present..."
+if [[ -f koala_icon.png ]]; then
+  convert koala_icon.png -resize 128x128 -strip -quality 85 koala_icon.png
+fi
+
+echo "🧹 Removing build artifacts (pkg/, src/, *.pkg.tar.*)..."
+rm -rf pkg/ src/
+rm -f *.pkg.tar.*
+
 # Git add, commit, and push
 echo "📤 Committing and pushing to AUR..."
 git add .
