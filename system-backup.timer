@@ -1,0 +1,10 @@
+[Unit]
+Description=Run system backup 15 minutes after login
+
+[Timer]
+OnActiveSec=15min
+OnUnitActiveSec=1d
+AccuracySec=1min
+
+[Install]
+WantedBy=default.target

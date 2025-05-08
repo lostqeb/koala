@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Koala
+Comment=Simple, set-and-forget backup tool with scheduled snapshots, sounds, and a terminal UI.
+Exec=koala-ui
+Icon=koala
+Terminal=false
+Type=Application
+Categories=Utility;System;Backup;

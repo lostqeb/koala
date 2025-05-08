@@ -1,0 +1,17 @@
+# Backup and build artifacts
+*.tar.*
+*.pkg.tar.*
+*.zst
+*.log
+
+# Build output directories
+pkg/
+src/
+build/
+*.o
+*.swp
+
+# Editor/IDE metadata
+*.kate-swp
+.idea/
+.vscode/

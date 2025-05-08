@@ -1,0 +1,17 @@
+post_install() {
+  echo "⚙️  Enabling Koala Backup systemd user timer..."
+  systemctl --user daemon-reexec
+  systemctl --user daemon-reload
+  systemctl --user enable --now system-backup.timer
+  echo "✅ Koala Backup systemd timer enabled for automatic backups."
+}
+
+post_upgrade() {
+  post_install
+}
+
+post_remove() {
+  echo "🧹 Disabling Koala Backup systemd user timer..."
+  systemctl --user disable --now system-backup.timer
+  echo "🛑 Koala Backup timer disabled. Manual backups still available with 'koala-backup'."
+}
